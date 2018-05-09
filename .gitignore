@@ -368,4 +368,7 @@ __pycache__/
 
 
 # End of https://www.gitignore.io/api/c,vim,visualstudio,visualstudiocode
+
+# my files
 output
+*.check
