@@ -50,7 +50,11 @@ static struct page_table_t* get_page_table(
 
 	int i;
 	for (i = 0; i < seg_table->size; i++) {
-		// Enter your code here
+#ifdef DEBUGGING
+		printf("SEG %d\n", i);
+#endif
+		if (seg_table->table[i].v_index == index)
+			return seg_table->table[i].pages;
 	}
 	return NULL;
 }
@@ -70,6 +74,11 @@ static int translate(
 	/* The second layer index */
 	addr_t second_lv = get_second_lv(virtual_addr);
 
+#ifdef DEBUGGING
+	printf("TRANSLATING: %x -> %x %x %x\n", virtual_addr, first_lv,
+	       second_lv, offset);
+#endif
+
 	/* Search in the first level */
 	struct page_table_t* page_table = NULL;
 	page_table = get_page_table(first_lv, proc->seg_table);
@@ -79,11 +88,18 @@ static int translate(
 
 	int i;
 	for (i = 0; i < page_table->size; i++) {
+#ifdef DEBUGGING
+		printf("PG %d v_index: %x\n", i, page_table->table[i].v_index);
+		printf("\tp_index: %d\n", page_table->table[i].p_index);
+#endif
 		if (page_table->table[i].v_index == second_lv) {
 			/* TODO: Concatenate the offset of the virtual addess
 			 * to [p_index] field of page_table->table[i] to
 			 * produce the correct physical address and save it to
 			 * [*physical_addr]  */
+			*physical_addr =
+			    (page_table->table[i].p_index << OFFSET_LEN) |
+			    offset;
 			return 1;
 		}
 	}

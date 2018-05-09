@@ -14,7 +14,11 @@ LFLAGS = -Wall $(DEBUG)
 vpath %.c $(SRC)
 vpath %.h $(INCLUDE)
 
-MAKE = $(CC) $(INC) 
+ifeq ($(DEBUGGING), TRUE)
+MAKE = $(CC) $(INC) -D DEBUGGING
+else
+MAKE = $(CC) $(INC)
+endif
 
 # Object files needed by modules
 MEM_OBJ = $(addprefix $(OBJ)/, paging.o mem.o cpu.o loader.o)
