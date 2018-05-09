@@ -1,13 +1,11 @@
+#include "queue.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "queue.h"
 
-int empty(struct queue_t * q) {
-	return (q->size == 0);
-}
+int empty(struct queue_t* q) { return (q->size == 0); }
 
-void enqueue(struct queue_t * q, struct pcb_t * proc) {
-	/* TODO: put a new process to queue [q] */	
+void enqueue(struct queue_t* q, struct pcb_t* proc) {
+	/* TODO: put a new process to queue [q] */
 	q->size++;
 	int insert_place = q->size - 1;
 	q->proc[insert_place] = proc;
@@ -17,18 +15,16 @@ void enqueue(struct queue_t * q, struct pcb_t * proc) {
 
 		uint32_t insert_prio = q->proc[insert_place]->priority;
 		uint32_t parent_prio = q->proc[parent_place]->priority;
-		if (insert_prio >= parent_prio)
-			break;
+		if (insert_prio >= parent_prio) break;
 
-		struct pcb_t * temp = q->proc[insert_place];
+		struct pcb_t* temp = q->proc[insert_place];
 		q->proc[insert_place] = q->proc[parent_place];
 		q->proc[parent_place] = temp;
 		insert_place = parent_place;
 	}
 }
 
-
-void heapify(struct queue_t * q, int idx) {
+void heapify(struct queue_t* q, int idx) {
 	int left_idx = idx * 2 + 1;
 	int right_idx = idx * 2 + 2;
 	int min_idx = idx;
@@ -53,26 +49,23 @@ void heapify(struct queue_t * q, int idx) {
 		}
 	}
 
-	if (min_idx == idx)
-		return;
+	if (min_idx == idx) return;
 
-	struct pcb_t * temp = q->proc[idx];
+	struct pcb_t* temp = q->proc[idx];
 	q->proc[idx] = q->proc[min_idx];
 	q->proc[min_idx] = temp;
 
 	heapify(q, min_idx);
 }
 
-struct pcb_t * dequeue(struct queue_t * q) {
+struct pcb_t* dequeue(struct queue_t* q) {
 	/* TODO: return a pcb whose prioprity is the highest
 	 * in the queue [q] and remember to remove it from q
 	 * */
 
+	if (empty(q)) return NULL;
 
-	if (empty(q))
-		return NULL;
-
-	struct pcb_t * ret = q->proc[0];
+	struct pcb_t* ret = q->proc[0];
 	// minheapify
 	q->proc[0] = q->proc[q->size - 1];
 	q->size--;
@@ -80,6 +73,4 @@ struct pcb_t * dequeue(struct queue_t * q) {
 	heapify(q, 0);
 
 	return ret;
-	
 }
-

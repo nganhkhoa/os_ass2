@@ -57,7 +57,7 @@ test_sched:
 	@echo ------ SCHEDULING TEST 1 -------------------------------------------
 	./os sched_1
 	@echo NOTE: Read file output/sched_1 to verify your result
-	
+
 test_os:
 	@echo ----- OS TEST 0 ----------------------------------------------------
 	./os os_0
