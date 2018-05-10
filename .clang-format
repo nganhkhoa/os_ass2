@@ -1,0 +1,7 @@
+ContinuationIndentWidth: 4
+IndentWidth: 8
+MaxEmptyLinesToKeep: 3
+UseTab: Never
+PointerAlignment: Left
+ReflowComments: true
+SortIncludes: false
