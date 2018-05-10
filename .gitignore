@@ -372,3 +372,8 @@ __pycache__/
 # my files
 output
 *.check
+
+
+# my files
+mem
+os
