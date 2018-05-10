@@ -51,7 +51,7 @@ get_page_table(addr_t index,                    // Segment level index
         int i;
         for (i = 0; i < seg_table->size; i++) {
 #ifdef DEBUGGING
-                printf("SEG %d\n", i);
+                // printf("SEG %d\n", i);
 #endif
                 if (seg_table->table[i].v_index == index)
                         return seg_table->table[i].pages;
@@ -73,10 +73,6 @@ static int translate(addr_t virtual_addr,   // Given virtual address
         /* The second layer index */
         addr_t second_lv = get_second_lv(virtual_addr);
 
-#ifdef DEBUGGING
-        printf("TRANSLATING: %x -> %x %x %x\n", virtual_addr, first_lv,
-               second_lv, offset);
-#endif
 
         /* Search in the first level */
         struct page_table_t* page_table = NULL;
@@ -88,8 +84,9 @@ static int translate(addr_t virtual_addr,   // Given virtual address
         int i;
         for (i = 0; i < page_table->size; i++) {
 #ifdef DEBUGGING
-                printf("PG %d v_index: %x\n", i, page_table->table[i].v_index);
-                printf("\tp_index: %d\n", page_table->table[i].p_index);
+                // printf("PG %d v_index: %x\n", i,
+                // page_table->table[i].v_index); printf("\tp_index: %d\n",
+                // page_table->table[i].p_index);
 #endif
                 if (page_table->table[i].v_index == second_lv) {
                         /* TODO: Concatenate the offset of the virtual addess
@@ -99,10 +96,58 @@ static int translate(addr_t virtual_addr,   // Given virtual address
                         *physical_addr =
                             (page_table->table[i].p_index << OFFSET_LEN) |
                             offset;
+
+#ifdef DEBUGGING
+                        printf("TRANSLATING: %x -> %x %x %x -> %x\n",
+                               virtual_addr, first_lv, second_lv, offset,
+                               *physical_addr);
+#endif
                         return 1;
                 }
         }
         return 0;
+}
+
+
+typedef struct {
+        addr_t v_index;
+        struct page_table_t* pages;
+} segment_table;
+
+typedef struct {
+        addr_t v_index;
+        addr_t p_index;
+} page_table;
+
+struct {
+        addr_t v_index;
+        struct page_table_t* pages;
+} * get_segment(addr_t first_lv, struct pcb_t* proc) {
+        // get segment in process
+        struct {
+                addr_t v_index;
+                struct page_table_t* pages;
+        }* segment = NULL;
+        int idx = 0;
+        for (idx = 0; idx < proc->seg_table->size; idx++) {
+                // find the seg_table with v_index = first_level
+                if (first_lv == proc->seg_table->table[idx].v_index)
+                        break;
+        }
+
+        if (idx == proc->seg_table->size) {
+                proc->seg_table->size++;
+        }
+
+        segment = &(proc->seg_table->table[idx]);
+        segment->v_index = first_lv;
+
+        if (segment->pages == NULL) {
+                segment->pages =
+                    (struct page_table_t*)malloc(sizeof(struct page_table_t));
+        }
+
+        return segment;
 }
 
 addr_t alloc_mem(uint32_t size, struct pcb_t* proc) {
@@ -128,16 +173,105 @@ addr_t alloc_mem(uint32_t size, struct pcb_t* proc) {
          * For virtual memory space, check bp (break pointer).
          * */
 
-        if (mem_avail) {
-                /* We could allocate new memory region to the process */
-                ret_mem = proc->bp;
-                proc->bp += num_pages * PAGE_SIZE;
-                /* Update status of physical pages which will be allocated
-                 * to [proc] in _mem_stat. Tasks to do:
-                 * 	- Update [proc], [index], and [next] field
-                 * 	- Add entries to segment table page tables of [proc]
-                 * 	  to ensure accesses to allocated memory slot is
-                 * 	  valid. */
+        int free_space = 0;
+        for (int i = 0; i < NUM_PAGES; i++) {
+                if (_mem_stat[i].proc == 0)
+                        free_space++;
+                if (free_space == num_pages) {
+                        mem_avail = 1;
+                        break;
+                }
+        }
+
+        // if break pointer is out of bound
+        if (proc->bp + num_pages * PAGE_SIZE > (1 << ADDRESS_SIZE)) {
+                mem_avail = 1;
+        }
+
+        if (!mem_avail) {
+                pthread_mutex_unlock(&mem_lock);
+                return ret_mem;
+        }
+
+        /* We could allocate new memory region to the process */
+        ret_mem = proc->bp;
+        proc->bp += num_pages * PAGE_SIZE;
+        /* Update status of physical pages which will be allocated
+         * to [proc] in _mem_stat. Tasks to do:
+         * 	- Update [proc], [index], and [next] field
+         * 	- Add entries to segment table page tables of [proc]
+         * 	  to ensure accesses to allocated memory slot is
+         * 	  valid. */
+
+        int prev = 0;
+        free_space = 0;
+
+        addr_t page_anchor = ret_mem;
+        addr_t first_lv = get_first_lv(page_anchor);
+        addr_t second_lv = get_second_lv(page_anchor);
+        addr_t new_first_lv = 0;
+
+        const int max_page = 1 << SEGMENT_LEN;
+        int* page_size = NULL;
+        struct {
+                addr_t v_index;
+                addr_t p_index;
+        }* page_table = NULL;
+
+        struct {
+                addr_t v_index;
+                struct page_table_t* pages;
+        }* segment = NULL;
+
+#ifdef DEBUGGING
+        printf("GIVE: %x - %x - %x: %d\n", ret_mem, first_lv, second_lv,
+               num_pages);
+#endif
+
+        segment = get_segment(first_lv, proc);
+        page_table = segment->pages->table;
+        page_size = &(segment->pages->size);
+
+        if (*page_size == max_page) {
+                // well, when this happens,
+                // means we need to go to the next segment
+                // but we won't get to this
+                // because of the first_lv above
+        }
+
+        for (int mem_page = 0; mem_page < NUM_PAGES; mem_page++) {
+                if (_mem_stat[mem_page].proc != 0)
+                        continue;
+
+                // update _mem_stat
+                _mem_stat[mem_page].proc = proc->pid;
+                _mem_stat[mem_page].index = free_space++;
+                if (free_space != 1)
+                        _mem_stat[prev].next = mem_page;
+                if (free_space == num_pages)
+                        _mem_stat[mem_page].next = -1;
+                prev = mem_page;
+
+                // update in page_table
+                page_table[*page_size].v_index = second_lv;
+                page_table[*page_size].p_index = mem_page;
+                (*page_size)++;
+
+                if (free_space == num_pages)
+                        break;
+
+                // move to next page
+                page_anchor += PAGE_SIZE;
+                new_first_lv = get_first_lv(page_anchor);
+                second_lv = get_second_lv(page_anchor);
+
+                if (new_first_lv != first_lv) {
+                        // get a new segment people
+                        first_lv = new_first_lv;
+                        segment = get_segment(first_lv, proc);
+                        page_table = segment->pages->table;
+                        page_size = &(segment->pages->size);
+                }
         }
         pthread_mutex_unlock(&mem_lock);
         return ret_mem;
@@ -152,6 +286,22 @@ int free_mem(addr_t address, struct pcb_t* proc) {
          * 	  the process [proc].
          * 	- Remember to use lock to protect the memory from other
          * 	  processes.  */
+        addr_t physical_addr;
+        if (translate(address, &physical_addr, proc)) {
+                int i = physical_addr >> OFFSET_LEN;
+#ifdef DEBUGGING
+                printf("FREE: %5x - I: %d\n", physical_addr, i);
+#endif
+                pthread_mutex_lock(&mem_lock);
+                while (i != -1) {
+                        _mem_stat[i].proc = 0;
+                        i = _mem_stat[i].next;
+                }
+                pthread_mutex_unlock(&mem_lock);
+                return 0;
+        } else {
+                return 1;
+        }
         return 0;
 }
 

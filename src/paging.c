@@ -10,6 +10,7 @@ int main(int argc, char** argv) {
                 printf("Cannot find input process\n");
                 exit(1);
         }
+        init_mem();
         struct pcb_t* proc = load(argv[1]);
         unsigned int i;
         for (i = 0; i < proc->code->size; i++) {

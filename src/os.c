@@ -20,6 +20,8 @@ static struct ld_args {
 } ld_processes;
 int num_processes;
 
+static pthread_mutex_t ahihi;
+
 struct cpu_args {
         struct timer_id_t* timer_id;
         int id;
@@ -65,7 +67,10 @@ static void* cpu_routine(void* args) {
                 } else if (time_left == 0) {
                         printf("\tCPU %d: Dispatched process %2d\n", id,
                                proc->pid);
+
+                        pthread_mutex_lock(&ahihi);
                         time_left = time_slot;
+                        pthread_mutex_unlock(&ahihi);
                 }
 
                 /* Run current process */
@@ -131,6 +136,7 @@ int main(int argc, char* argv[]) {
         strcat(path, "input/");
         strcat(path, argv[1]);
         read_config(path);
+        pthread_mutex_init(&ahihi, NULL);
 
         pthread_t* cpu = (pthread_t*)malloc(num_cpus * sizeof(pthread_t));
         struct cpu_args* args =
