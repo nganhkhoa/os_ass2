@@ -2,6 +2,7 @@
 #include "queue.h"
 #include "sched.h"
 #include <pthread.h>
+#include <stdio.h>
 // clang-format on
 
 static struct queue_t ready_queue;
@@ -26,9 +27,14 @@ struct pcb_t* get_proc(void) {
 
 	if (queue_empty()) return NULL;
 
-	// printf("BEFORE:\n");
-	// print_queue();
 	pthread_mutex_lock(&queue_lock);
+#ifdef DEBUGGING
+	printf("BEFORE:\n");
+	printf("RUN QUEUE:\n\t");
+	print_queue(&run_queue);
+	printf("READY QUEUE:\n\t");
+	print_queue(&ready_queue);
+#endif
 	if (empty(&ready_queue)) {
 		while (!empty(&run_queue)) {
 			struct pcb_t* temp = dequeue(&run_queue);
@@ -37,9 +43,14 @@ struct pcb_t* get_proc(void) {
 	}
 
 	proc = dequeue(&ready_queue);
+#ifdef DEBUGGING
+	printf("AFTER:\n");
+	printf("RUN QUEUE:\n\t");
+	print_queue(&run_queue);
+	printf("READY QUEUE:\n\t");
+	print_queue(&ready_queue);
+#endif
 	pthread_mutex_unlock(&queue_lock);
-	// printf("AFTER:\n");
-	// print_queue();
 
 	return proc;
 }

@@ -15,7 +15,7 @@ void enqueue(struct queue_t* q, struct pcb_t* proc) {
 
 		uint32_t insert_prio = q->proc[insert_place]->priority;
 		uint32_t parent_prio = q->proc[parent_place]->priority;
-		if (insert_prio >= parent_prio) break;
+		if (insert_prio <= parent_prio) break;
 
 		struct pcb_t* temp = q->proc[insert_place];
 		q->proc[insert_place] = q->proc[parent_place];
@@ -35,7 +35,7 @@ void heapify(struct queue_t* q, int idx) {
 
 	if (left_idx < q->size) {
 		left_prio = q->proc[left_idx]->priority;
-		if (left_prio < min_prio) {
+		if (left_prio > min_prio) {
 			min_idx = left_idx;
 			min_prio = q->proc[left_idx]->priority;
 		}
@@ -43,7 +43,7 @@ void heapify(struct queue_t* q, int idx) {
 
 	if (right_idx < q->size) {
 		right_prio = q->proc[right_idx]->priority;
-		if (right_prio < min_prio) {
+		if (right_prio > min_prio) {
 			min_idx = right_idx;
 			// min_prio = q->proc[right_idx]->priority;
 		}
@@ -74,3 +74,15 @@ struct pcb_t* dequeue(struct queue_t* q) {
 
 	return ret;
 }
+
+#ifdef DEBUGGING
+
+void print_queue(struct queue_t * q) {
+	for (int i = 0; i < q->size; i++) {
+		printf("%d-%d ", q->proc[i]->pid,
+			q->proc[i]->priority);
+	}
+	printf("\n");
+}
+
+#endif
