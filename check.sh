@@ -19,7 +19,7 @@ diff output/m0 sample/m0 > mem1.check
 
 
 echo 'CHECKING ON SCHED'
-diff output/sched_0 sample/sched_0 > shced0.check
+diff output/sched_0 sample/sched_0 > sched0.check
 diff output/sched_1 sample/sched_1 > sched1.check
 
 
