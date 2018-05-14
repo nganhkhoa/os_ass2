@@ -11,6 +11,7 @@ echo 'RUNNING'
 ./os sched_1 > output/sched_1
 ./os os_0 > output/os_0
 ./os os_1 > output/os_1
+./os os_2 > output/os_2
 
 
 echo 'CHECKING ON MEM'

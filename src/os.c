@@ -68,9 +68,7 @@ static void* cpu_routine(void* args) {
                         printf("\tCPU %d: Dispatched process %2d\n", id,
                                proc->pid);
 
-                        pthread_mutex_lock(&ahihi);
                         time_left = time_slot;
-                        pthread_mutex_unlock(&ahihi);
                 }
 
                 /* Run current process */
@@ -99,7 +97,9 @@ static void* ld_routine(void* args) {
         }
         free(ld_processes.path);
         free(ld_processes.start_time);
+        pthread_mutex_lock(&ahihi);
         done = 1;
+        pthread_mutex_unlock(&ahihi);
         detach_event(timer_id);
         pthread_exit(NULL);
 }
@@ -136,6 +136,7 @@ int main(int argc, char* argv[]) {
         strcat(path, "input/");
         strcat(path, argv[1]);
         read_config(path);
+        init_mem();
         pthread_mutex_init(&ahihi, NULL);
 
         pthread_t* cpu = (pthread_t*)malloc(num_cpus * sizeof(pthread_t));

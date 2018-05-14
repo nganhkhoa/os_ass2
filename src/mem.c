@@ -184,11 +184,11 @@ addr_t alloc_mem(uint32_t size, struct pcb_t* proc) {
         }
 
         // if break pointer is out of bound
-        if (proc->bp + num_pages * PAGE_SIZE > (1 << ADDRESS_SIZE)) {
+        if (proc->bp + num_pages * PAGE_SIZE <= (1 << ADDRESS_SIZE)) {
                 mem_avail = 1;
         }
 
-        if (!mem_avail) {
+        if (!mem_avail || free_space == 0) {
                 pthread_mutex_unlock(&mem_lock);
                 return ret_mem;
         }
@@ -274,6 +274,9 @@ addr_t alloc_mem(uint32_t size, struct pcb_t* proc) {
                 }
         }
         pthread_mutex_unlock(&mem_lock);
+        // printf("After Give %d pages to %d\n", num_pages, proc->pid);
+        // dump();
+        // printf("---\n");
         return ret_mem;
 }
 
@@ -289,6 +292,7 @@ int free_mem(addr_t address, struct pcb_t* proc) {
         addr_t physical_addr;
         if (translate(address, &physical_addr, proc)) {
                 int i = physical_addr >> OFFSET_LEN;
+                int pages_free = 0;
 #ifdef DEBUGGING
                 printf("FREE: %5x - I: %d\n", physical_addr, i);
 #endif
@@ -296,8 +300,12 @@ int free_mem(addr_t address, struct pcb_t* proc) {
                 while (i != -1) {
                         _mem_stat[i].proc = 0;
                         i = _mem_stat[i].next;
+                        pages_free++;
                 }
                 pthread_mutex_unlock(&mem_lock);
+                // printf("After Free %d pages to %d from %d\n", pages_free, proc->pid, physical_addr >> OFFSET_LEN);
+                // dump();
+                // printf("---\n");
                 return 0;
         } else {
                 return 1;
